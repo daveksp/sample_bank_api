@@ -1,0 +1,378 @@
+openapi: 3.0.0
+info:
+  x-logo:
+    url: ""
+    backgroundColor: "#FFFFFF"
+  description: |
+    "This is the Bank api."
+
+    # Introduction
+    This API is documented in **OpenAPI format** and it's designed for providing features for banking services.
+
+    # Requests
+    The base url of the API is http://127.0.0.1:8089/.
+    All **POST** requests are **JSON** encoded and must have content type of **application/json**.
+
+    At the present moment we don't have any **PUT** or **PATCH** operations
+
+    Following we have the header options and it's values:
+
+    Header | Values
+    ----------------|-------------
+    Content-Type | application/json
+
+    # HTTP Verbs
+      - **GET** - To retrieve balance or statement.
+      - **POST** - To create a new account or transaction
+      - **DELETE** - To mark one account as blocked (soft delete)
+
+    # HTTP Status Codes
+    ##Success Codes:
+
+      - **200 OK** - Request succeeded. Response included
+      - **201 Created** - Resource created. URL to new resource in Location header
+
+    <br/>
+    ##Error Codes:
+      - **400 Bad Request** - Request was incorrect or corrupted
+      - **404 Not Found** - Resource not found
+      - **415 Unsupported Media Type** - POST request occurred without a application/json content type
+      - **500**, **501**, **502**, **503**, **etc** - An internal server error occured
+
+
+    # GET Query Parameters
+    There're some query parameters available for searching operations:
+
+    Query Parameter | Notes
+    ----------------|-------------
+    limit | number of results you want to display
+    offset | start row position
+    from | start date
+    to | end date
+
+    Inportant! for sake of simplicity, the API requires the caller to provide the `to` value if `from` is provided.
+
+    <br/><br/>
+    **Sample Request:**
+
+        GET /accounts/statement/1?from=2020-12-01&to=2020-12-31&limit=5&offset=2
+
+    <br/><br/>
+    **Sample Response:**
+
+        200 OK
+        Content-Type: application/json
+
+        {
+            "balance": 100.00,
+            "id": 1,
+            "person": {
+                "name": "Bruce Wayne"
+            },
+            "transactions": [
+                {
+                    "account_id": 1,
+                    "description": "Pagamento por estatua 2",
+                    "id": 2,
+                    "transaction_date": "2021-01-11T18:04:53.811938",
+                    "transaction_type": "TransactionTypeEnum.deposito",
+                    "value": 50.00
+                },
+                {
+                    "account_id": 1,
+                    "description": "Cobranca por estatua",
+                    "id": 3,
+                    "transaction_date": "2021-01-11T18:05:33.968861",
+                    "transaction_type": "TransactionTypeEnum.saque",
+                    "value": 5.00
+                },
+                {
+                    "account_id": 1,
+                    "description": "Conta de água",
+                    "id": 4,
+                    "transaction_date": "2021-01-11T18:07:40.466354",
+                    "transaction_type": "TransactionTypeEnum.saque",
+                    "value": 5.00
+                }
+            ]
+        }
+
+    # Validation Errors
+    In case of validation errors on a POST request, a 400 status code will be returned. The JSON response body will include all validation errors in an attribute message:
+
+        {
+            "error": {
+                "details": {
+                    "value": [
+                        "Missing data for required field."
+                    ]
+                },
+                "error_category": "request_data",
+                "error_type": "information_missing",
+                "message": "One or more required fields were omitted from the request."
+            }
+        }
+
+  version: "0.1"
+  title: "Bank API"
+  contact:
+    email: "dkspinheiro@gmail.com"
+host: "http://127.0.0.1:8089"
+schemes:
+- "http"
+security:
+paths:
+  /accounts:
+    post:
+      tags:
+      - "Account"
+      summary: "Creates a new account"
+      description: ""
+      operationId: "newAccount"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "new account to be created"
+        required: true
+        schema:
+          $ref: "#/definitions/Account"
+      responses:
+        201:
+          description: "Object Created"
+          schema:
+            $ref: "#/definitions/AccountResponse"
+        400:
+          description: "Request Error"
+          schema:
+            $ref: "#/definitions/ApiErrorResponse"
+  /accounts/balance/{account_id}:
+    get:
+      tags:
+        - "Balance"
+      summary: "Gets Account balance"
+      description: ""
+      operationId: "getBalance"
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "account_id"
+          description: "returns account balance"
+          required: true
+          type: "integer"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            $ref: "#/definitions/AccountBalance"
+        400:
+          description: "Not found"
+  /accounts/statement/{account_id}:
+    get:
+      tags:
+        - "Statement"
+      summary: "Gets Account statement"
+      description: ""
+      operationId: "getStatement"
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "account_id"
+          description: "returns account statement"
+          required: true
+          type: "integer"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            $ref: "#/definitions/AccountStatement"
+        400:
+          description: "Not found"
+  /accounts/block/{account_id}:
+    delete:
+      tags:
+        - "Block Acount"
+      summary: "Blocks Account "
+      description: ""
+      operationId: "delAccount"
+      consumes:
+        - "application/json"
+      parameters:
+        - in: "path"
+          name: "account_id"
+          description: "blocks an account"
+          required: true
+          type: "integer"
+      responses:
+        200:
+          description: "Success"
+          schema:
+            $ref: "#/definitions/AccountBalance"
+        400:
+          description: "Not found"
+  /transactions:
+    post:
+      tags:
+        - "Transactions"
+      summary: "Executes Deposit/Withdraw"
+      description: ""
+      operationId: "postTransactions"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "body"
+          description: "new account deposit/withdraw transaction"
+          required: true
+          schema:
+            $ref: "#/definitions/Transaction"
+      responses:
+        201:
+          description: "Object Created"
+          schema:
+            $ref: "#/definitions/Transaction"
+        400:
+          description: "Request Error"
+          schema:
+            $ref: "#/definitions/ApiErrorResponse"
+components:
+definitions:
+  AccountBalance:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      balance:
+        type: "decimal"
+      person:
+        type: "object"
+        properties:
+          name:
+            type: "string"
+  Transaction:
+    type: "object"
+    required:
+      - "value"
+      - "account_id"
+      - "description"
+      - "transaction_type"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      value:
+        type: "decimal"
+      transaction_date:
+        type: "date"
+      description:
+          type: "string"
+      account_id:
+        type: "integer"
+      transaction_type:
+        type: "string"
+    xml:
+      name: "Transaction"
+  AccountStatement:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      balance:
+        type: "decimal"
+      person:
+        type: "object"
+        properties:
+          name:
+            type: "string"
+      transactions:
+        type: "array"
+        items:
+          $ref: '#/definitions/Transaction'
+  Person:
+    type: "object"
+    required:
+      - "name"
+      - "cpf"
+      - "birthdate"
+      - "email"
+    properties:
+      name:
+        type: "string"
+      cpf:
+        type: "string"
+      birthdate:
+        type: "date"
+      email:
+        type: "string"
+    xml:
+      name: "Person"
+  AccountResponse:
+    type: "object"
+    required:
+      - "balance"
+      - "person"
+      - "daily_withdraw_limit"
+      - "account_type"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      balance:
+        type: "integer"
+      person:
+        $ref: '#/definitions/Person'
+      daily_withdraw_limit:
+        type: "integer"
+      status:
+        type: "string"
+      created_at:
+        type: "string"
+      account_type:
+        type: "string"
+      transactions:
+        type: "array"
+        items:
+          type: "integer"
+    xml:
+      name: "AccountResponse"
+  Account:
+    type: "object"
+    required:
+    - "balance"
+    - "person"
+    - "daily_withdraw_limit"
+    - "account_type"
+    properties:
+      balance:
+        type: "integer"
+      person:
+        $ref: '#/definitions/Person'
+      daily_withdraw_limit:
+        type: "integer"
+      account_type:
+        type: "string"
+    xml:
+      name: "Account"
+  ApiErrorResponse:
+    type: "object"
+    properties:
+      error:
+        type: "object"
+        properties:
+          details:
+            type: "object"
+          error_category:
+            type: "string"
+          error_type:
+            type: "string"
+          message:
+            type: "string"

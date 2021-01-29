@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  test_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bank_api
+    working_dir: /code
+    volumes:
+      - .:/code
+    links:
+      - db:db
+    stdin_open: true
+    tty: true
+    ports:
+      - 8089:8089
+  db:
+    container_name: 'bank_mysql'
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'bank'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+
+volumes:
+  database-new-data:
+  mysql-data:
